@@ -6,8 +6,6 @@ GAME_RENDER_SPEED = 1/30; // how fast we actually render the screen
 
 ANIMATION_SPEED = 3 * GAME_UPDATE_SPEED;
 
-PIXEL_SIZE = 8;
-
 SPAWN_LABEL = "Spawning";
 FONT = "20px Georgia";
 
@@ -18,12 +16,15 @@ function timestamp() {
 }
 
 g_CurrentLevel = 1;
-g_CanvasWidth = 500;
-g_CanvasHeight = 500;
-
 g_CalculatedTime = timestamp();
 
-g_IsLeftPressed = false, g_IsRightPressed = false, g_IsUpPressed = false, g_IsDownPressed = false, g_IsSpacePressed = false;// input
+g_IsLeftPressed = false;
+g_IsRightPressed = false;
+g_IsUpPressed = false;
+g_IsDownPressed = false;
+g_IsSpacePressed = false;
+g_IsXPressed = false;
+g_IsZPressed = false;
 
 g_CurrentLevel = -1;
 
@@ -220,62 +221,64 @@ RIGHT_KEYCODE = 39;
 SPACE_KEYCODE = 32;
 UP_KEYCODE = 38;
 DOWN_KEYCODE = 40;
+Z_KEYCODE = 90;
+X_KEYCODE = 88;
 
 // handles input
 document.addEventListener('keydown', function(e) {
 	
 	if (e.keyCode == LEFT_KEYCODE) {
-
 		e.preventDefault();
 		g_IsLeftPressed = true;
 
 	} else if (e.keyCode == RIGHT_KEYCODE) {
-		
 		e.preventDefault();
 		g_IsRightPressed = true;
 
 	} else if (e.keyCode == UP_KEYCODE) {
-		
 		e.preventDefault();
 		g_IsUpPressed = true;
 
 	} else if (e.keyCode == DOWN_KEYCODE) {
-		
 		e.preventDefault();
 		g_IsDownPressed = true;
 
 	} else if (e.keyCode == SPACE_KEYCODE) {
-
 		e.preventDefault();
 		g_IsSpacePressed = true;
+
+	} else if (e.keyCode == Z_KEYCODE) {
+		e.preventDefault();
+		g_IsZPressed = true;
+	} else if (e.keyCode == X_KEYCODE) {
+		e.preventDefault();
+		g_IsXPressed = true;
 	}
 });
 
 document.addEventListener('keyup', function(e) {
 	
 	if (e.keyCode == LEFT_KEYCODE) {
-	
 		e.preventDefault();
 		g_IsLeftPressed = false;
-
 	} else if (e.keyCode == RIGHT_KEYCODE) {
-	
 		e.preventDefault();
 		g_IsRightPressed = false;
-	}
-	if (e.keyCode == UP_KEYCODE) {
-	
+	} else if (e.keyCode == UP_KEYCODE) {
 		e.preventDefault();
 		g_IsUpPressed = false;
-
 	} else if (e.keyCode == DOWN_KEYCODE) {
-	
 		e.preventDefault();
 		g_IsDownPressed = false;
-
 	} else if (e.keyCode == SPACE_KEYCODE) {
 		e.preventDefault();
 		g_IsSpacePressed = false;
+	} else if (e.keyCode == Z_KEYCODE) {
+		e.preventDefault();
+		g_IsZPressed = false;
+	} else if (e.keyCode == X_KEYCODE) {
+		e.preventDefault();
+		g_IsXPressed = false;
 	}
 });
 
@@ -344,9 +347,6 @@ window.onload = function(e) {
 
 	game_LoadAssets();
 
-	g_CanvasWidth = cvs.width;
-	g_CanvasHeight = cvs.height;
-
 	setInterval(mainLoop, GAME_RENDER_SPEED);
 };
 
@@ -361,15 +361,32 @@ g_GameState = GAME_STATE_LOADING
 // this is for animation frames
 g_StateCounter = 0
 
-TILE_WIDTH = 25
-TILE_HEIGHT = 25
-TILE_SIZE = 40
+TILE_WIDTH = 15;
+TILE_HEIGHT = 12;
+TILE_SIZE = 40;
+
+CANVAS_WIDTH = TILE_SIZE * TILE_WIDTH;
+CANVAS_HEIGHT = TILE_SIZE * TILE_HEIGHT;
+
 
 g_PlayerX = 5;
 g_PlayerY = 5; // player position
 g_PlayerFrame = 0; // current frame of the player
-g_WasLeftPressed = false, g_WasRightPressed = false, g_WasUpPressed = false, g_WasDownPressed = false, g_WasSpacePressd = false;
-g_MirrorPlayerX = true;
+g_WasLeftPressed = false;
+g_WasRightPressed = false;
+g_WasUpPressed = false;
+g_WasDownPressed = false;
+g_WasSpacePressd = false;
+g_WasZPressed = false;
+g_WasXPressed = false;
+
+PLAYER_DIR_UP = 0
+PLAYER_DIR_LEFT = 1
+PLAYER_DIR_DOWN = 2
+PLAYER_DIR_RIGHT = 3
+
+g_PlayerDirection = PLAYER_DIR_DOWN;
+
 
 g_PlayerDrawX = g_PlayerX * TILE_SIZE;
 g_PlayerDrawY = g_PlayerY * TILE_SIZE;
@@ -377,8 +394,10 @@ g_PlayerDrawY = g_PlayerY * TILE_SIZE;
 g_PlayerUpFrames = [];
 g_PlayerRightFrames = [];
 g_PlayerDownFrames = [];
-g_CurrentPlayerAnim = null;
 g_InputRepeatCounter = 0;
+
+g_Junk = [];
+
 
 function updatePlayerPos() {
 
@@ -398,36 +417,46 @@ function updatePlayerPos() {
 
 	if (g_IsLeftPressed && !g_WasLeftPressed) {
 		g_PlayerX -= 1;
-		g_MirrorPlayerX = true;
-		g_CurrentPlayerAnim = g_PlayerRightFrames;
+		g_PlayerDirection = PLAYER_DIR_LEFT;
 	}
 
 	if (g_IsRightPressed && !g_WasRightPressed) {
 		g_PlayerX += 1;
-		g_MirrorPlayerX = false;
-		g_CurrentPlayerAnim = g_PlayerRightFrames;
+		g_PlayerDirection = PLAYER_DIR_RIGHT;
 	}
 
 	if (g_IsUpPressed && !g_WasUpPressed) {
 		g_PlayerY -= 1;
-		g_MirrorPlayerX = false;
-		g_CurrentPlayerAnim = g_PlayerUpFrames;
+		g_PlayerDirection = PLAYER_DIR_UP;
 	}
 
 	if (g_IsDownPressed && !g_WasDownPressed) {
 		g_PlayerY += 1;
-		g_MirrorPlayerX = false;
-		g_CurrentPlayerAnim = g_PlayerDownFrames;		
+		g_PlayerDirection = PLAYER_DIR_DOWN;
+	}
+
+	if (g_IsZPressed && !g_WasZPressed) {
+		g_PlayerDirection += 1;
+		if (g_PlayerDirection > PLAYER_DIR_RIGHT)
+			g_PlayerDirection = 0;
+	}
+
+	if (g_IsXPressed && !g_WasXPressed) {
+		g_PlayerDirection -= 1;
+		if (g_PlayerDirection == -1)
+			g_PlayerDirection = PLAYER_DIR_RIGHT;
 	}
 
 	// this is the input for the playe
-	g_PlayerY = clamp(g_PlayerY, 0, TILE_HEIGHT);
-	g_PlayerX = clamp(g_PlayerX, 0, TILE_WIDTH);	
+	g_PlayerY = clamp(g_PlayerY, 0, TILE_HEIGHT-1);
+	g_PlayerX = clamp(g_PlayerX, 0, TILE_WIDTH-1);	
 
 	g_WasLeftPressed = g_IsLeftPressed;
 	g_WasRightPressed = g_IsRightPressed;
 	g_WasUpPressed = g_IsUpPressed;
 	g_WasDownPressed = g_IsDownPressed;
+	g_WasXPressed = g_IsXPressed;
+	g_WasZPressed = g_IsZPressed;
 }
 
 function setGameState(new_state) {
@@ -455,19 +484,24 @@ function drawObjects(ctx) {
 }
 
 function drawPlayer(ctx) {
-
-	if (g_CurrentPlayerAnim == null)
-		g_CurrentPlayerAnim = g_PlayerDownFrames;
-
 	g_PlayerDrawX += ((g_PlayerX*TILE_SIZE) - g_PlayerDrawX) * 0.1;
 	g_PlayerDrawY += ((g_PlayerY*TILE_SIZE) - g_PlayerDrawY) * 0.1;
 
-	var img = findAnimationFrame(g_CurrentPlayerAnim, 0);
+	var use_anims = null;
+	if (g_PlayerDirection == PLAYER_DIR_LEFT || g_PlayerDirection == PLAYER_DIR_RIGHT) {
+		use_anims = g_PlayerRightFrames
+	} else if (g_PlayerDirection == PLAYER_DIR_UP) {
+		use_anims = g_PlayerUpFrames;
+	} else {
+		use_anims = g_PlayerDownFrames;
+	}
+
+	var img = findAnimationFrame(use_anims, 0);
 	ctx.save();
-	var scale_x = g_MirrorPlayerX ? -1.0 : 1;
+	var scale_x = (g_PlayerDirection == PLAYER_DIR_LEFT) ? -1.0 : 1;
 	ctx.scale(scale_x, 1);
 	ctx.drawImage(img,
-		(g_PlayerDrawX + (g_MirrorPlayerX ? TILE_SIZE : 0)) * scale_x,
+		(g_PlayerDrawX + (g_PlayerDirection == PLAYER_DIR_LEFT ? TILE_SIZE : 0)) * scale_x,
 		g_PlayerDrawY,
 		img.width,
 		img.height
@@ -482,6 +516,8 @@ function updatePlayerCollisions() {
 
 function updateGame() {
 
+	setGameState(GAME_STATE_PLAYING);
+
 	updatePlayer();
 	updatePlayerCollisions();
 	updateHUD();
@@ -493,7 +529,7 @@ function drawLoadScreen() {
 	var ctx = cvs.getContext('2d');
 
 	ctx.fillStyle = '#000';
-	ctx.fillRect(0, 0, g_CanvasWidth, g_CanvasHeight);
+	ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 	ctx.fillStyle = '#FFF';
 	ctx.font = '48px ' + GUI_FONT;
@@ -510,7 +546,7 @@ function drawEndGame() {
 function drawBackground(ctx) {
 
 	ctx.fillStyle = '#835C3B'
-	ctx.fillRect(0, 0, g_CanvasWidth, g_CanvasHeight);
+	ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
 
 }
 
@@ -525,6 +561,7 @@ function drawHUD(ctx) {
 			var label = 'in GAME_STATE_PLAYING!';
 			// var w = ctx.measureText(label).width;
 
+			ctx.fillStyle = shadow ? '#000' : '#FFF';
 			ctx.fillText(label, 100 + offset_x, 90 + offset_y);
 		}
 	}
